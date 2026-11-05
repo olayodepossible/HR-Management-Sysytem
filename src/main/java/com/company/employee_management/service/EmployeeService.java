@@ -10,6 +10,13 @@ public interface EmployeeService {
 
     Page<EmployeeResponse> getAllEmployees(int page, int size);
 
+    Page<EmployeeResponse> searchEmployees(String name, String department, String status, String email,
+            int page, int size, String sortBy, String direction);
+
+    EmployeeResponse updateStatus(Long employeeId, String status);
+
+    EmployeeResponse updateManager(Long employeeId, Long managerId);
+
     List<EmployeeResponse> getEmployeesByDepartment(String departmentName);
 
     EmployeeResponse updateEmployee(Long employeeId,

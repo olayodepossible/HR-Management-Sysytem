@@ -16,6 +16,12 @@ import com.company.employee_management.repository.DepartmentRepository;
 import com.company.employee_management.repository.EmployeeRepository;
 import com.company.employee_management.service.EmployeeService;
 import com.company.employee_management.utils.EmployeeUtils;
+import com.company.employee_management.enums.EmploymentStatus;
+import com.company.employee_management.exception.InvalidRequestException;
+import com.company.employee_management.repository.EmployeeSpecifications;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +59,14 @@ public class EmployeeServiceImpl
                         .firstName(request.firstName().trim())
                         .lastName(request.lastName().trim())
                         .email(email)
+                        .personalEmail(request.personalEmail() == null || request.personalEmail().isBlank()
+                                ? null : normaliseStringToLowerCase(request.personalEmail()))
                         .department(department)
+                        .employmentType(request.employmentType())
+                        .jobTitle(request.jobTitle().trim())
+                        .confirmationDate(request.confirmationDate())
+                        .probationEndDate(request.probationEndDate())
+                        .terminationDate(request.terminationDate())
                         .build();
 
         Employee savedEmployee = employeeRepository.save(employee);
@@ -74,9 +87,55 @@ public class EmployeeServiceImpl
     @Override
     @Transactional(readOnly = true)
     public Page<EmployeeResponse> getAllEmployees(int page, int size) {
-        PageRequest pageable = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "createdAt", "id"));
-        return employeeRepository.findAll(pageable).map(EmployeeUtils::mapToResponse);
+        return searchEmployees(null, null, null, null, page, size, "createdAt", "desc");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<EmployeeResponse> searchEmployees(String name, String department, String status, String email,
+            int page, int size, String sortBy, String direction) {
+        Set<String> allowedSorts = Set.of("id", "firstName", "lastName", "email", "createdAt", "status");
+        if (page < 0 || size < 1 || size > 100 || sortBy == null || !allowedSorts.contains(sortBy)
+                || direction == null || !(direction.equalsIgnoreCase("asc") || direction.equalsIgnoreCase("desc"))) {
+            throw new InvalidRequestException("Invalid pagination or sorting parameters");
+        }
+        EmploymentStatus employmentStatus = status == null ? null : EmploymentStatus.parse(status);
+        Sort.Direction sortDirection = Sort.Direction.valueOf(direction.toUpperCase(Locale.ROOT));
+        String property = sortBy.equals("status") ? "employmentStatus" : sortBy;
+        Sort sort = Sort.by(sortDirection, property);
+        if (!sortBy.equals("id")) {
+            sort = sort.and(Sort.by(sortDirection, "id"));
+        }
+        return employeeRepository.findAll(EmployeeSpecifications.search(name, department, employmentStatus, email),
+                PageRequest.of(page, size, sort)).map(EmployeeUtils::mapToResponse);
+    }
+
+    @Override
+    @Transactional
+    public EmployeeResponse updateStatus(Long employeeId, String status) {
+        EmploymentStatus requestedStatus = EmploymentStatus.parse(status);
+        Employee employee = findEmployee(employeeId);
+        employee.setEmploymentStatus(requestedStatus);
+        return mapToResponse(employeeRepository.saveAndFlush(employee));
+    }
+
+    @Override
+    @Transactional
+    public EmployeeResponse updateManager(Long employeeId, Long managerId) {
+        Employee employee = findEmployee(employeeId);
+        Employee manager = managerId == null ? null : findEmployee(managerId);
+        Set<Long> visited = new HashSet<>();
+        for (Employee current = manager; current != null; current = current.getManager()) {
+            if (current.getId().equals(employeeId) || !visited.add(current.getId())) {
+                throw new InvalidRequestException("Reporting lines cannot contain a cycle");
+            }
+        }
+        employee.setManager(manager);
+        return mapToResponse(employeeRepository.saveAndFlush(employee));
+    }
+
+    private Employee findEmployee(Long id) {
+        return employeeRepository.findById(id).orElseThrow(() -> new EmployeeNotFoundException(id));
     }
 
     @Override
@@ -101,6 +160,11 @@ public class EmployeeServiceImpl
         employee.setLastName(request.lastName().trim());
         employee.setEmail(email);
         employee.setDepartment(department);
+        employee.setEmploymentType(request.employmentType());
+        employee.setJobTitle(request.jobTitle().trim());
+        employee.setConfirmationDate(request.confirmationDate());
+        employee.setProbationEndDate(request.probationEndDate());
+        employee.setTerminationDate(request.terminationDate());
         return mapToResponse(employeeRepository.saveAndFlush(employee));
     }
 

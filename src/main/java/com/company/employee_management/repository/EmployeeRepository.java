@@ -7,9 +7,16 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.domain.Specification;
 
 @NullMarked
-public interface EmployeeRepository  extends JpaRepository<Employee, Long> {
+public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSpecificationExecutor<Employee> {
+
+    @Override
+    @EntityGraph(attributePaths = "department")
+    Page<Employee> findAll(@Nullable Specification<Employee> specification, Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = "department")

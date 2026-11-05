@@ -16,7 +16,14 @@ public class EmployeeUtils {
                 employee.getFirstName(),
                 employee.getLastName(),
                 employee.getEmail(),
-                employee.getDepartment().getName()
+                employee.getDepartment().getName(),
+                employee.getEmploymentStatus(),
+                employee.getManager() == null ? null : employee.getManager().getId(),
+                employee.getEmploymentType(),
+                employee.getJobTitle(),
+                employee.getConfirmationDate(),
+                employee.getProbationEndDate(),
+                employee.getTerminationDate()
         );
     }
 

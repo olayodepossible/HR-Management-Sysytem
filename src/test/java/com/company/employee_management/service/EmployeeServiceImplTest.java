@@ -4,6 +4,8 @@ import com.company.employee_management.dto.CreateEmployeeRequest;
 import com.company.employee_management.dto.EmployeeResponse;
 import com.company.employee_management.entity.Department;
 import com.company.employee_management.entity.Employee;
+import com.company.employee_management.enums.DepartmentStatus;
+import com.company.employee_management.enums.EmploymentType;
 import com.company.employee_management.exception.EmployeeNotFoundException;
 import com.company.employee_management.repository.DepartmentRepository;
 import com.company.employee_management.repository.EmployeeRepository;
@@ -48,12 +50,15 @@ class  EmployeeServiceImplTest {
                         "John",
                         "Doe",
                         "john.doe@company.com",
-                        "Engineering"
+                        "jane@test.com",
+                        "Engineering",
+                        EmploymentType.FULL_TIME,
+                        "Engineer", null, null, null
                 );
 
-        Department department = new Department(1L, "Engineering");
+        Department department = new Department(1L, null, "Engineering", "DEPT_REF-gd4757",DepartmentStatus.ACTIVE, "Engineering");
 
-        Employee savedEmployee = Employee.builder()
+        Employee savedEmployee = Employee.builder().employmentType(EmploymentType.FULL_TIME).jobTitle("Engineer")
                 .id(10L).firstName("Doe")
                 .lastName("John").email("john.doe@company.com")
                 .department(department)
@@ -87,9 +92,9 @@ class  EmployeeServiceImplTest {
     @Test
     void shouldRetrieveEmployeeById() {
 
-        Department department = new Department(1L, "Finance");
+        Department department = new Department(1L, null, "Finance", "DEPT_REF-g4h55", DepartmentStatus.ACTIVE, "Finance");
 
-        Employee employee = Employee.builder()
+        Employee employee = Employee.builder().employmentType(EmploymentType.FULL_TIME).jobTitle("Engineer")
                 .id(20L).firstName("Jane")
                 .lastName("Smith").email("jane.smith@company.com")
                 .department(department)

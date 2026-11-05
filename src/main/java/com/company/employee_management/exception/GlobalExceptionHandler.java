@@ -21,6 +21,20 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ApiError> handleBusinessValidation(
+            InvalidRequestException exception, HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(new ApiError(
+                LocalDateTime.now(), 400, "Bad Request", exception.getMessage(), request.getRequestURI(), Map.of()));
+    }
+
+    @ExceptionHandler(DuplicateDepartmentException.class)
+    public ResponseEntity<ApiError> handleDuplicateDepartment(
+            DuplicateDepartmentException exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(
+                LocalDateTime.now(), 409, "Conflict", exception.getMessage(), request.getRequestURI(), Map.of()));
+    }
+
     @ExceptionHandler({
             MethodArgumentTypeMismatchException.class,
             HttpMessageNotReadableException.class,
@@ -48,12 +62,13 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(), errors));
     }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ExceptionHandler({DataIntegrityViolationException.class,
+            org.springframework.dao.OptimisticLockingFailureException.class})
     public ResponseEntity<ApiError> handleDataConflict(
-            DataIntegrityViolationException exception, HttpServletRequest request) {
+            RuntimeException exception, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(
                 LocalDateTime.now(), 409, "Conflict",
-                "The operation conflicts with existing data",
+                "The operation conflicts with existing data or a concurrent update; reload and retry",
                 request.getRequestURI(), Map.of()));
     }
 
